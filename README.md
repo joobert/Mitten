@@ -65,7 +65,12 @@ Mitten is a Python script designed to monitor GitHub repositories for new commit
     CHECK_INTERVAL=60
     ```
 
-3. Start the service with Docker Compose:
+3. Create an empty `commit_log.json` file:
+    ```sh
+    touch commit_log.json
+    ```
+
+4. Start the service with Docker Compose:
     ```sh
     docker-compose up -d
     ```
