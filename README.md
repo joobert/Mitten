@@ -8,6 +8,9 @@
 
 Mitten is a Python script designed to monitor GitHub repositories for new commits and send notifications to a specified Discord channel. The script leverages the GitHub API to fetch commit information and Discord Webhooks to post notifications.
 
+# Known Issues
+Quickly rate-limited by GitHub's API. Use only with newer repositories that don't have a big commit history until a workaround is implemented.
+
 ## Features
 
 - Fetches commits from specified GitHub repositories.
