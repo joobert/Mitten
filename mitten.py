@@ -60,7 +60,10 @@ def fetch_repo_info(repo, last_seen_timestamp=None):
 def load_commit_log():
     if os.path.exists('commit_log.json'):
         with open('commit_log.json', 'r') as file:
-            return json.load(file)
+            try:
+                return json.load(file)
+            except json.JSONDecodeError:
+                return {}
     else:
         return {}
 
