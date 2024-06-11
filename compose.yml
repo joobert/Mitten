@@ -1,0 +1,10 @@
+---
+services:
+  mitten:
+    build: .
+    container_name: mitten
+    env_file:
+      - .env
+    volumes:
+      - ./commit_log.json:/app/commit_log.json
+    restart: unless-stopped
