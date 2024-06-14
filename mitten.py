@@ -66,11 +66,11 @@ def fetch_all_commits(repo):
         if response.status_code == 403:
             reset_time = int(response.headers['X-RateLimit-Reset'])
             wait_time = reset_time - time.time()
-            logging.warning(f"Rate limit exceeded. Waiting for {int(wait_time)} seconds.")
+            logging.warning(f"Rate limit exceeded. Waiting for {int(wait_time)} second(s).")
             if not github_token:
                 logging.info("Consider setting a GitHub API token to avoid rate limiting.")
             while wait_time > 0:
-                logging.info(f"Waiting for {int(wait_time)} seconds...")
+                logging.info(f"Waiting for {int(wait_time)} second(s)...")
                 time.sleep(5)
                 wait_time -= 5
             continue
@@ -296,22 +296,22 @@ def check_repo(repo):
         # Log the current API rate limit and reset time
         if github_token:
             if remaining_minutes < 1:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} seconds")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} second(s)")
             elif remaining_minutes < 10:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minutes, and {remaining_seconds} seconds")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s), and {remaining_seconds} second(s)")
             elif 10 < remaining_minutes < 60:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minutes")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s)")
             else:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hours, {remaining_minutes} minutes")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hour(s), {remaining_minutes} minute(s)")
         else:
             if remaining_minutes < 1:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} seconds")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} second(s)")
             elif remaining_minutes < 10:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minutes, and {remaining_seconds} seconds")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s), and {remaining_seconds} second(s)")
             elif 10 < remaining_minutes < 60:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minutes")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s)")
             else:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hours, {remaining_minutes} minutes")
+                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hour(s), {remaining_minutes} minute(s)")
 
 # Monitor GitHub API usage
 def monitor_api_usage():
@@ -359,22 +359,22 @@ def main():
         # Log each new scan, as well as the current API rate limit and reset time
         if github_token:
             if remaining_minutes < 1:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} seconds)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} second(s))")
             elif remaining_minutes < 10:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minutes, and {remaining_seconds} seconds)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s), and {remaining_seconds} second(s))")
             elif 10 < remaining_minutes < 60:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minutes)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s))")
             else:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hours, {remaining_minutes} minutes)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hour(s), {remaining_minutes} minute(s))")
         else:
             if remaining_minutes < 1:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} seconds)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} second(s))")
             elif remaining_minutes < 10:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minutes, and {remaining_seconds} seconds)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s), and {remaining_seconds} second(s))")
             elif 10 < remaining_minutes < 60:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minutes)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s))")
             else:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hours, {remaining_minutes} minutes)")
+                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hour(s), {remaining_minutes} minute(s))")
 
         # Enable multi-threading to check multiple repositories concurrently
         if enable_multi_threading:
