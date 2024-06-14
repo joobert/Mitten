@@ -329,7 +329,7 @@ def main():
     logging.info(f"Monitoring {len(repos)} repositories: {repos}")
     commit_log = load_commit_log()
     first_iteration = True  # Flag to indicate the first iteration of the main loop
-    enable_multi_threading = True  # Enable multi-threading to check multiple repositories concurrently (Currently disabled by default due to async issues)
+    enable_multi_threading = False  # Enable multi-threading to check multiple repositories concurrently (Currently disabled by default due to async issues)
     while True:
         rate_limit, rate_limit_reset = monitor_api_usage()
         remaining_time = rate_limit_reset - time.time()
