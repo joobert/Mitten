@@ -89,11 +89,11 @@ Create a '**.env**' file in the same directory as the script with the following 
 
 ## Important Notes
 
-- **Initial Run**: On the first run (and for each subsequent repository added down the line), Mitten will initialize each repository by fetching its entire commit history to avoid spamming notifications and fetch commits pushed during the script's downtime on the next run. This process can be API heavy and time-consuming for large repositories but only needs to be done once.
+- **Initial Run**: On the first run (and for each subsequent repository added down the line), Mitten will initialize each repository by fetching its entire commit history to avoid spamming notifications and fetch commits pushed during the script's downtime on the next run. This process can be API heavy and time-consuming for large repositories, but only needs to be done once.
 
-- **GitHub Token**: It is highly recommended to set a GitHub API token to avoid API rate limiting issues. Without the token, you will be limited to 60 requests per hour, which might not be sufficient for monitoring multiple repositories, nor sufficient for the inital run of a large repository. Setting the token increases this limit significantly (5000 requests per hour) ensuring you won't run into issues.
+- **GitHub Token**: It is highly recommended to set a GitHub API token to avoid API rate limiting issues. Without the token, you will be limited to 60 requests per hour, which might not be sufficient for monitoring multiple repositories, nor sufficient for the initial run of a large repository. Setting the token increases this limit significantly (5000 requests per hour) ensuring you won't run into issues.
 
-- **Logging**: Mitten creates and logs commit information locally in a file named '**commit_log.json**' to ensure that no duplicate notifications are sent. The script also saves it's runtime logs to a file named '**mitten_logs.txt**'. Both of these should be kept in the same directory as the script.
+- **Logging**: Mitten creates and logs commit information locally in a file named '**commit_log.json**' to ensure that no duplicate notifications are sent. The script also saves its runtime logs to a file named '**mitten_logs.txt**'. Both of these should be kept in the same directory as the script.
 
 ## Contributing
 
