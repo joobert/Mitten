@@ -42,7 +42,7 @@ if not discord_webhook_url:
 
 github_token = os.getenv('GITHUB_TOKEN')
 if not github_token:
-    logging.warning("'GITHUB_TOKEN' environment variable is missing or empty. It is highly recommended to set a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens \n\nContinuing without a token in 10 seconds...\n")
+    logging.warning("'GITHUB_TOKEN' environment variable is missing or empty. It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens \n\nContinuing without a token in 10 seconds...\n")
     time.sleep(10)
 
 interval = int(os.getenv('CHECK_INTERVAL'))
@@ -175,7 +175,7 @@ def initialize_repo_log(repo, commit_log, new_repos):
     logging.info(f"({repo_index}/{len(new_repos)}) Initialized {len(commits)} commits for repository: {repo}")
     logging.info(f"({repo_index}/{len(new_repos)}) API requests remaining after initialization of {repo}: {rate_limit}")
     if repo_index == len(new_repos):
-        logging.info(f"Done! Successfully initalized {len(new_repos)} repositories. Checking for new commits every {interval} seconds...")
+        logging.info(f"Done! Successfully initialized {len(new_repos)} repositories. Checking for new commits every {interval} seconds...")
 
 # Send a notification to Discord about the new commit
 def notify_discord(repo, commit):
@@ -328,7 +328,7 @@ def main():
     logging.info("Starting Mitten...")
     logging.info(f"Monitoring {len(repos)} repositories: {repos}")
     commit_log = load_commit_log()
-    first_iteration = True  # Flag to indicate the first iteration of the main loop
+    first_iteration = True  # Initialize flag to indicate the first iteration of the main loop
     enable_multi_threading = False  # Enable multi-threading to check multiple repositories concurrently (Currently disabled by default due to async issues)
     while True:
         rate_limit, rate_limit_reset = monitor_api_usage()
@@ -336,10 +336,10 @@ def main():
         remaining_hours = int(remaining_time / 3600)
         remaining_minutes = int((remaining_time % 3600) / 60)
         remaining_seconds = int(remaining_time % 60)
-        if rate_limit < (30 * len(repos)):  # Adjust the rate limit threshold to avoid rate limiting
+        if rate_limit < (10 * len(repos)):  # Adjust the polling interval to avoid rate limiting
             logging.warning(f"API rate limit is low ({rate_limit} remaining). Adjusting polling interval and waiting for {interval * 2} seconds.")
             if not github_token:
-                logging.warning("It is highly recommended to set a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
+                logging.warning("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
             time.sleep(interval * 2)
             continue
 
@@ -347,7 +347,7 @@ def main():
         new_repos = [r for r in repos if r not in commit_log]
         if len(new_repos) > 0:
             logging.info(f"{len(new_repos)} new repositories detected: {new_repos}")
-            logging.info("Mitten saves a local copy of each respository's commit history to avoid spam. This only needs to be done ONCE for each repository you add to the list.")
+            logging.info("Notice: Mitten saves a local copy of each repository's commit history to avoid spam and duplicate notifications. This may take a while for large repositories, but only needs to be done once for each repository in your list.")
             logging.info(f"Initializing commit logs for {len(new_repos)} new repositories...")
             for repo in new_repos:
                 initialize_repo_log(repo, commit_log, new_repos)
