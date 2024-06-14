@@ -57,6 +57,9 @@ headers = {'Authorization': f'token {github_token}'} if github_token else {}
 # Stores the timestamp of the latest commit seen for each repo
 latest_commits = {}
 
+# Determine the rate limit value based on the presence of a GitHub token
+rate_limit = '5000' if github_token else '60'
+
 # Fetch all commits of a repository
 def fetch_all_commits(repo):
     url = f'https://api.github.com/repos/{repo}/commits'
@@ -68,7 +71,7 @@ def fetch_all_commits(repo):
             wait_time = reset_time - time.time()
             logging.warning(f"Rate limit exceeded. Waiting for {int(wait_time)} second(s).")
             if not github_token:
-                logging.info("Consider setting a GitHub API token to avoid rate limiting.")
+                logging.info("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
             while wait_time > 0:
                 logging.info(f"Waiting for {int(wait_time)} second(s)...")
                 time.sleep(5)
@@ -161,8 +164,8 @@ def log_notified_commit(repo, commit_sha, commit_log):
 # Initialize each new repository with its entire commit history to avoid spamming notifications
 def initialize_repo_log(repo, commit_log, new_repos):
     repo_index = new_repos.index(repo) + 1
-    logging.info(f"({repo_index}/{len(new_repos)}) Initializing log for new repository: {repo} (Be patient, this may take a while for large repositories.)")
-    rate_limit, rate_limit_reset = monitor_api_usage()
+    logging.info(f"({repo_index}/{len(new_repos)}) Initializing log for new repository: {repo} (This may take a while if it's a large repository...)")
+    requests_remaining, rate_limit_reset_time = monitor_api_usage()
     commits = fetch_all_commits(repo)
     if repo not in commit_log:
         commit_log[repo] = {}
@@ -173,7 +176,7 @@ def initialize_repo_log(repo, commit_log, new_repos):
     if commits:
         latest_commits[repo] = commits[0]['commit']['committer']['date']
     logging.info(f"({repo_index}/{len(new_repos)}) Initialized {len(commits)} commits for repository: {repo}")
-    logging.info(f"({repo_index}/{len(new_repos)}) API requests remaining after initialization of {repo}: {rate_limit}")
+    logging.info(f"({repo_index}/{len(new_repos)}) API requests remaining after initialization of {repo}: {requests_remaining}")
     if repo_index == len(new_repos):
         logging.info(f"Done! Successfully initialized {len(new_repos)} repositories. Checking for new commits every {interval} seconds...")
 
@@ -182,12 +185,6 @@ def notify_discord(repo, commit):
     commit_sha = commit['sha']
     commit_message = commit['commit']['message']
     commit_log = load_commit_log()
-    rate_limit, rate_limit_reset = monitor_api_usage()
-
-    # Check if already notified/logged
-    if has_been_logged(repo, commit_sha, commit_log):
-        logging.info(f"Commit #{commit_sha} in {repo} has already been logged. Watching for new commits...")
-        return
 
     # Extract and split the commit message and description
     if '\n\n' in commit_message:
@@ -268,6 +265,7 @@ def notify_discord(repo, commit):
     # Log the message
     logging.info(log_message)
 
+    # Send the Discord embed
     response = requests.post(discord_webhook_url, json=discord_embed)
     response.raise_for_status()
     time.sleep(1)  # Avoid Discord webhook rate limiting
@@ -283,98 +281,78 @@ def check_repo(repo):
             # Update the latest commit timestamp for the repo to the most recent commit
             latest_commit_timestamp = new_commits[-1]['commit']['committer']['date']
             latest_commits[repo] = latest_commit_timestamp
-            # Notify for each new commit
+
+            # Notify for each new commit if it has not been logged
             for commit in new_commits:
-                notify_discord(repo, commit)
+                commit_sha = commit['sha']
+                commit_log = load_commit_log()
+                if has_been_logged(repo, commit_sha, commit_log):  # Check if already notified/logged
+                    logging.info(f"Commit #{commit_sha} in {repo} has already been logged. Watching for new commits...")
+                    return
+                else:  # Notify for each new commit
+                    notify_discord(repo, commit)
+
     except requests.RequestException as e:
-        rate_limit, rate_limit_reset = monitor_api_usage()
-        remaining_time = rate_limit_reset - time.time()
-        remaining_hours = int(remaining_time / 3600)
-        remaining_minutes = int((remaining_time % 3600) / 60)
-        remaining_seconds = int(remaining_time % 60)
+        requests_remaining, rate_limit_reset_time = monitor_api_usage()
+        formatted_reset_time = format_reset_time(rate_limit_reset_time)
         logging.error(f"Error fetching commits for {repo}: {e}")
-        # Log the current API rate limit and reset time
-        if github_token:
-            if remaining_minutes < 1:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} second(s)")
-            elif remaining_minutes < 10:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s), and {remaining_seconds} second(s)")
-            elif 10 < remaining_minutes < 60:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s)")
-            else:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hour(s), {remaining_minutes} minute(s)")
-        else:
-            if remaining_minutes < 1:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} second(s)")
-            elif remaining_minutes < 10:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s), and {remaining_seconds} second(s)")
-            elif 10 < remaining_minutes < 60:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s)")
-            else:
-                logging.warning(f"API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hour(s), {remaining_minutes} minute(s)")
+        # Log the current API requests remaining and rate limit reset time
+        logging.warning(f"API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
+
+# Function to format the API rate limit reset time into a human-readable string
+def format_reset_time(rate_limit_reset_time):
+    remaining_time = rate_limit_reset_time - time.time()
+    remaining_minutes = int((remaining_time % 3600) / 60)
+    remaining_seconds = int(remaining_time % 60)
+    if 10 < remaining_minutes < 60:
+        return f"{remaining_minutes} minute(s)"
+    elif 1 < remaining_minutes < 10:
+        return f"{remaining_minutes} minute(s), and {remaining_seconds % 60} second(s)"
+    else:
+        return f"{remaining_seconds} second(s)"
 
 # Monitor GitHub API usage
 def monitor_api_usage():
     url = 'https://api.github.com/rate_limit'
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    rate_limit = response.json()['rate']['remaining']
-    rate_limit_reset = response.json()['rate']['reset']
+    requests_remaining = response.json()['rate']['remaining']
+    rate_limit_reset_time = response.json()['rate']['reset']
 
-    return rate_limit, rate_limit_reset
+    return requests_remaining, rate_limit_reset_time
 
 # Main function to orchestrate the checking and notification process
 def main():
-    logging.info("Starting Mitten...")
+    # Enable multi-threading to check multiple repositories concurrently (Turn this off if you are having issues with notifications or rate limiting)
+    enable_multi_threading = True
+
+    logging.info("Starting Mitten (v1.1.5)")
     logging.info(f"Monitoring {len(repos)} repositories: {repos}")
     commit_log = load_commit_log()
-    first_iteration = True  # Initialize flag to indicate the first iteration of the main loop
-    enable_multi_threading = False  # Enable multi-threading to check multiple repositories concurrently (Currently disabled by default due to async issues)
+
+    # Check for new repositories not found in the commit_log.json
+    new_repos = [r for r in repos if r not in commit_log]
+    if new_repos:
+        logging.info(f"{len(new_repos)} new repositories detected: {new_repos}")
+        logging.info("Notice: Mitten saves a local copy of each repository's commit history to avoid spam and duplicate notifications. This may take a while for large repositories, but only needs to be done once for each repository in your list.")
+        logging.info(f"Initializing commit logs for {len(new_repos)} new repositories...")
+        for repo in new_repos:
+            initialize_repo_log(repo, commit_log, new_repos)
+    else:
+        logging.info(f"No new repositories detected. Checking for new commits every {interval} seconds...")
+
     while True:
-        rate_limit, rate_limit_reset = monitor_api_usage()
-        remaining_time = rate_limit_reset - time.time()
-        remaining_hours = int(remaining_time / 3600)
-        remaining_minutes = int((remaining_time % 3600) / 60)
-        remaining_seconds = int(remaining_time % 60)
-        if rate_limit < (10 * len(repos)):  # Adjust the polling interval to avoid rate limiting
-            logging.warning(f"API rate limit is low ({rate_limit} remaining). Adjusting polling interval and waiting for {interval * 2} seconds.")
+        requests_remaining, rate_limit_reset_time = monitor_api_usage()
+        formatted_reset_time = format_reset_time(rate_limit_reset_time)
+        if requests_remaining < (10 * len(repos)):  # Adjust the polling interval to avoid rate limiting
+            logging.warning(f"API rate limit is low ({requests_remaining} requests remaining). Adjusting polling interval and waiting for {interval * 2} seconds.")
             if not github_token:
                 logging.warning("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
             time.sleep(interval * 2)
             continue
 
-        # Check for new repositories not found in the commit_log.json
-        new_repos = [r for r in repos if r not in commit_log]
-        if len(new_repos) > 0:
-            logging.info(f"{len(new_repos)} new repositories detected: {new_repos}")
-            logging.info("Notice: Mitten saves a local copy of each repository's commit history to avoid spam and duplicate notifications. This may take a while for large repositories, but only needs to be done once for each repository in your list.")
-            logging.info(f"Initializing commit logs for {len(new_repos)} new repositories...")
-            for repo in new_repos:
-                initialize_repo_log(repo, commit_log, new_repos)
-            first_iteration = False
-        elif first_iteration:
-            logging.info(f"No new repositories detected. Checking for new commits every {interval} seconds...")
-            first_iteration = False
-
-        # Log each new scan, as well as the current API rate limit and reset time
-        if github_token:
-            if remaining_minutes < 1:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_seconds} second(s))")
-            elif remaining_minutes < 10:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s), and {remaining_seconds} second(s))")
-            elif 10 < remaining_minutes < 60:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_minutes} minute(s))")
-            else:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '5000' in {remaining_hours} hour(s), {remaining_minutes} minute(s))")
-        else:
-            if remaining_minutes < 1:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_seconds} second(s))")
-            elif remaining_minutes < 10:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s), and {remaining_seconds} second(s))")
-            elif 10 < remaining_minutes < 60:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_minutes} minute(s))")
-            else:
-                logging.info(f"Starting new scan... (API requests remaining: {rate_limit} | Rate limit resets to '60' in {remaining_hours} hour(s), {remaining_minutes} minute(s))")
+        # Log each new scan, as well as the current API requests remaining and rate limit reset time
+        logging.info(f"Starting new scan... | API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
 
         # Enable multi-threading to check multiple repositories concurrently
         if enable_multi_threading:
@@ -392,6 +370,8 @@ def main():
                 except Exception as e:
                     logging.error(f"Error occurred while checking repository: {e}")
 
+        # Log the end of each scan
+        logging.info(f"Scan completed. Waiting for {interval} seconds...")
         time.sleep(interval)
 
 if __name__ == "__main__":
