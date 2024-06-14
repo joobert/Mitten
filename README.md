@@ -8,14 +8,11 @@
 
 **Mitten** is a Python script designed to monitor GitHub repositories for new commits and send notifications to a specified Discord channel. The script leverages the GitHub API to fetch commit information and Discord Webhooks to post notifications.
 
-# Known Issues
-- Enabling multithreading may cause issues with larger repositories due to async, causing previously logged commits to be spammed. Enable at your discretion.
-
 ## Features
 
 - Fetches commits from specified GitHub repositories.
 - Sends commit notifications to Discord with detailed commit information.
-- Supports multiple repositories concurrently using threading. (Off by default due to async problems with larger repositories)
+- Supports multiple repositories concurrently using threading. (Toggleable in the script's main function, turn this off if you are having issues with notifications or rate limiting.)
 - Logs commit information locally to avoid duplicate notifications.
 - Fetches commits pushed since the last runtime of the script, ensuring that commits pushed during downtime are still fetched in the next run.
 - Configurable through environment variables.
