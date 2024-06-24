@@ -20,7 +20,7 @@ if not os.path.exists('.env'):
     time.sleep(1)
     sys.exit(1)
 
-# Load environment variables from a .env file
+# Load environment variables from .env file
 load_dotenv()
 
 # Get environment variables and handle missing or empty variables
@@ -255,12 +255,12 @@ def notify_discord(repo, commit):
 
     # Construct the log message
     log_message = (f"Sending message to Discord for new commit in {repo}\n"
-                f"                                 Commit SHA: {commit_sha}\n"
-                f"                                 Commit Message: {simple_commit_message}\n"
-                f"                                 Description: {description_lines[0]}\n")
+                f"                                     Commit SHA: {commit_sha}\n"
+                f"                                     Commit Message: {simple_commit_message}\n"
+                f"                                     Description: {description_lines[0]}\n")
     for line in description_lines[1:]:
-        log_message += f"                                              {line}\n"
-    log_message += f"                                 Commit URL: {commit_url}"
+        log_message += f"                                                  {line}\n"
+    log_message += f"                                     Commit URL: {commit_url}"
 
     # Log the message
     logging.info(log_message)
@@ -323,10 +323,10 @@ def monitor_api_usage():
 
 # Main function to orchestrate the checking and notification process
 def main():
-    # Enable multi-threading to check multiple repositories concurrently (Turn this off if you are having issues with notifications or rate limiting)
-    enable_multi_threading = True
+    # Enable multi-threading to check multiple repositories concurrently (Set this to 'False' if you are having issues with notifications or rate limiting)
+    enable_multi_threading = False
 
-    logging.info("Starting Mitten (v1.1.5)")
+    logging.info("Starting Mitten (v1.1.6)")
     logging.info(f"Monitoring {len(repos)} repositories: {repos}")
     commit_log = load_commit_log()
 
