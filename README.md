@@ -12,7 +12,7 @@
 
 - Fetches commits from specified GitHub repositories.
 - Sends commit notifications to Discord with detailed commit information.
-- Supports multiple repositories concurrently using threading. (Toggleable in the script's main function, disable if you are having issues with notifications or rate limiting.)
+- Supports multiple repositories concurrently using threading. (Toggleable in the script's main function, unnecessary most of the time. Enable if the number of repos you'd like to monitor exceeds your .env file's `CHECK_INTERVAL` value)
 - Logs commit information locally to avoid duplicate notifications.
 - Fetches commits pushed since the last runtime of the script, ensuring that commits pushed during downtime are still fetched in the next run.
 - Configurable through environment variables.
