@@ -397,7 +397,7 @@ def notify_discord(repo, branch, commit, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLO
     commit_message = commit['commit']['message']
     commit_log = load_commit_log()
 
-    role_mentions = " ".join(f"<@&{role_id}>" for role_id in ROLES_TO_MENTION.split(',') if role_id.isdigit())
+    role_mentions = "".join(f"<@&{role_id}>" if role_id.isdigit() else role_id for role_id in ROLES_TO_MENTION.split(','))
     if "@everyone" in ROLES_TO_MENTION.split(','):
         role_mentions += " @everyone"
 
