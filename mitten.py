@@ -328,18 +328,19 @@ def send_test_webhook_message(DISCORD_WEBHOOK_URL):
 def notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_repos, headers, commits, is_start=True, initial_message_sent=False):
     key = f"{repo}:{branch}"
     repo_name = repo.split('/')[1]
+    repo_word = "repository" if len(new_repos) == 1 else "repositories"
 
     # Construct and send the initial message if it is the first repository being initialized
     if repo_index == 1 and not initial_message_sent:
         formatted_new_repos = '\n'.join([f"- {repo[0].replace(', ', ':').replace('(', '').replace(')', '').replace('[', '').replace(']', '')}:{repo[1]}" for repo in new_repos])
-        initial_message = f"**{len(new_repos)}** new repositories detected: \n{formatted_new_repos}"
-        initial_description = f"Initializing commit logs for **{len(new_repos)}** new repositories..."
+        initial_message = f"**{len(new_repos)}** new {repo_word} detected: \n{formatted_new_repos}"
+        initial_description = f"Initializing commit logs for **{len(new_repos)}** new {repo_word}..."
 
         initial_embed = {
             "embeds": [
                 {
                     "author": {
-                        "name": "Initializing New Repositories",
+                        "name": f"Initializing New {repo_word.capitalize()}",
                     },
                     "title": initial_message,
                     "description": initial_description,
@@ -544,10 +545,11 @@ def main():
     # Check for new repositories not found in the commit_log.json
     new_repos = [r for r in parsed_repos if f"{r[0]}:{r[1]}" not in commit_log.keys()]
     formatted_new_repos = '\n                                 '.join([f"• {repo[0].replace(', ', ':').replace('(', '').replace(')', '').replace('[', '').replace(']', '')}:{repo[1]}" for repo in new_repos])
+    repo_word = "repository" if len(new_repos) == 1 else "repositories"
     if new_repos:
-        logging.info(f"{len(new_repos)} new repositories detected: \n                                 {formatted_new_repos}")
+        logging.info(f"{len(new_repos)} new {repo_word} detected: \n                                 {formatted_new_repos}")
         logging.info("[Notice] Mitten saves a local copy of each repository's commit history to avoid spam and duplicate notifications. This may take a while for large repositories, but only needs to be done once for each repository in your list.")
-        logging.info(f"Initializing commit logs for {len(new_repos)} new repositories...")
+        logging.info(f"Initializing commit logs for {len(new_repos)} new {repo_word}...")
         for repo, branch in new_repos:
             initialize_repo_log(repo, branch, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_INTERVAL, WEBHOOKS_ON_REPO_INIT, commit_log, latest_commits, new_repos, headers)
     else:
