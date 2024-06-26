@@ -12,7 +12,8 @@
 
 - Fetches commits from specified GitHub repositories.
 - Sends commit notifications to Discord with detailed commit information.
-- Supports multiple repositories concurrently using threading. (Toggleable in the script's main function, unnecessary most of the time. Enable if the number of repos you'd like to monitor exceeds your .env file's `CHECK_INTERVAL` value)
+- Ability to mention specified roles in commit notifications.
+- Supports selecting specific branches from each repository.
 - Logs commit information locally to avoid duplicate notifications.
 - Fetches commits pushed since the last runtime of the script, ensuring that commits pushed during downtime are still fetched in the next run.
 - Configurable through environment variables.
@@ -25,10 +26,15 @@
 
 ## Configuration
 Create a '**.env**' file in the same directory as the script with the following variables:
-- **REPOS**: A comma-separated list of repositories to monitor. (e.g., '**user/repo1,user/repo2**').
+- **REPOS**: A comma-separated list of repositories to monitor. You can also optionally specify a branch for each repo by adding ':branch_name' (e.g., '**owner/repo1,owner/repo1:dev_branch,owner/repo2**').
 - **DISCORD_WEBHOOK_URL**: The Discord webhook URL where notifications will be sent.
 - **GITHUB_TOKEN**: (Optional but **highly recommended**) Your GitHub API token to avoid rate limiting. Learn more about creating a personal access token [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-- **CHECK_INTERVAL**: The interval (in seconds) at which the script checks for new commits. 
+- **CHECK_INTERVAL**: The interval (in seconds) at which the script checks for new commits. Make sure this value is less than the number of repos to monitor.
+- **DISCORD_EMBED_COLOR**: (Optional) The color of the commit embeds sent to Discord.
+- **ROLES_TO_MENTION**: (Optional) The role IDs (NOT role name, but the corresponding 19 digit role ID) to mention in Discord when a new commit is detected. Separate each role ID with a comma. You can also ping @everyone by simply setting this to '@everyone'.
+- **WEBHOOKS_ON_REPO_INIT**: Choose whether to send a message to Discord whenever a new repository is initialized.
+- **PREFER_AUTHOR_IN_TITLE**: Preference for title style in commit messages. If set to True, the commit author's username and avatar will be used in the title of the embed. If set to False, the repo name and the repo owner's avatar will be used.
+- **TEST_WEBHOOK_CONNECTION**: Send a test message to Discord when the script is started.
 
 ### Installation
 
@@ -45,10 +51,15 @@ Create a '**.env**' file in the same directory as the script with the following 
 
 3. Create a `.env` file with the following content:
     ```env
-    REPOS=owner/repo1,owner/repo2,owner/repo3
+    REPOS=owner/repo1,owner/repo1:dev_branch,owner/repo2,owner/repo3
     DISCORD_WEBHOOK_URL=your_webhook_url
     GITHUB_TOKEN=your_github_token
     CHECK_INTERVAL=60
+    DISCORD_EMBED_COLOR=
+    ROLES_TO_MENTION=
+    WEBHOOKS_ON_REPO_INIT=True
+    PREFER_AUTHOR_IN_TITLE=False
+    TEST_WEBHOOK_CONNECTION=False
     ```
 
 4. Run the script:
@@ -68,10 +79,15 @@ Create a '**.env**' file in the same directory as the script with the following 
 
 2. Create a `.env` file with the following content:
     ```env
-    REPOS=owner/repo1,owner/repo2,owner/repo3
+    REPOS=owner/repo1,owner/repo1:dev_branch,owner/repo2,owner/repo3
     DISCORD_WEBHOOK_URL=your_webhook_url
     GITHUB_TOKEN=your_github_token
     CHECK_INTERVAL=60
+    DISCORD_EMBED_COLOR=
+    ROLES_TO_MENTION=
+    WEBHOOKS_ON_REPO_INIT=True
+    PREFER_AUTHOR_IN_TITLE=False
+    TEST_WEBHOOK_CONNECTION=False
     ```
 
 3. Create an empty `commit_log.json` file:
