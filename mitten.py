@@ -56,7 +56,7 @@ def get_env_vars():
         logging.warning("'CHECK_INTERVAL' environment variable is missing or empty. Defaulting to 60 seconds.")
         time.sleep(3)
     if not DISCORD_EMBED_COLOR:
-        DISCORD_EMBED_COLOR = 0x222222
+        DISCORD_EMBED_COLOR = '0x222222'
         logging.info("'DISCORD_EMBED_COLOR' environment variable is missing or empty. Defaulting to dark gray (Hex=0x222222).")
     if not ROLES_TO_MENTION:
         ROLES_TO_MENTION = ""
