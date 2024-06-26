@@ -35,7 +35,7 @@ def get_env_vars():
     DISCORD_EMBED_COLOR = os.getenv('DISCORD_EMBED_COLOR')
     ROLES_TO_MENTION = os.getenv('ROLES_TO_MENTION')
 
-    # Handle missing or empty environment variables
+    # Handle environment variables
     if not REPOS:
         logging.error("'REPOS' environment variable is missing or empty. Please configure a list of repositories in your .env file to continue.\nExiting...")
         time.sleep(1)
@@ -61,6 +61,10 @@ def get_env_vars():
     if not ROLES_TO_MENTION:
         ROLES_TO_MENTION = ""
         logging.info("'ROLES_TO_MENTION' environment variable is missing or empty. No roles will be mentioned in notifications.")
+    else:
+        ROLES_TO_MENTION = "".join(f"<@&{role_id}>" if role_id.isdigit() else role_id for role_id in ROLES_TO_MENTION.split(','))
+        if "@everyone" in ROLES_TO_MENTION.split(','):
+            ROLES_TO_MENTION += " @everyone"
     if not WEBHOOKS_ON_REPO_INIT:
         WEBHOOKS_ON_REPO_INIT = True
         logging.info("'WEBHOOKS_ON_REPO_INIT' environment variable is missing or empty. Defaulting to True.")
@@ -89,6 +93,7 @@ def parse_repos(REPOS, headers):
     parsed_repos = []
     commit_log = load_commit_log()
 
+    # Loop through each repository in the REPOS environment variable
     for repo in REPOS:
         if ':' in repo:
             repo_name, branch = repo.split(':')
@@ -302,6 +307,7 @@ def initialize_repo_log(repo, branch, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_I
     if repo_index == len(new_repos):
         logging.info(f"Done! Successfully initialized {len(new_repos)} repositories. Checking for new commits every {CHECK_INTERVAL} seconds...")
 
+# Send a test message to the Discord webhook
 def send_test_webhook_message(DISCORD_WEBHOOK_URL):
     test_message = {
         "embeds": [
