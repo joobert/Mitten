@@ -275,7 +275,7 @@ def initialize_repo_log(repo, branch, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_I
 
     # Notify and log the start of repo initialization
     logging.info(f"({repo_index}/{len(new_repos)}) Initializing log for new repository: {key} (This may take a while if it's a large repository...)")
-    if WEBHOOKS_ON_REPO_INIT == True:
+    if WEBHOOKS_ON_REPO_INIT == 'True':
         notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_repos, headers, commits=0, is_start=True, initial_message_sent=False)
 
     # Fetch all existing commits of the repository
@@ -297,7 +297,7 @@ def initialize_repo_log(repo, branch, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_I
     logging.info(f"({repo_index}/{len(new_repos)}) API requests remaining after initialization: {requests_remaining}")
 
     # Notify and log the completion of repo initialization
-    if WEBHOOKS_ON_REPO_INIT == True:
+    if WEBHOOKS_ON_REPO_INIT == 'True':
         notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_repos, headers, commits, is_start=False, initial_message_sent=True)
     if repo_index == len(new_repos):
         logging.info(f"Done! Successfully initialized {len(new_repos)} repositories. Checking for new commits every {CHECK_INTERVAL} seconds...")
