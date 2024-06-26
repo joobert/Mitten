@@ -333,14 +333,14 @@ def notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_
     # Construct and send the initial message if it is the first repository being initialized
     if repo_index == 1 and not initial_message_sent:
         formatted_new_repos = '\n'.join([f"- {repo[0].replace(', ', ':').replace('(', '').replace(')', '').replace('[', '').replace(']', '')}:{repo[1]}" for repo in new_repos])
-        initial_message = f"**{len(new_repos)}** new {repo_word} detected: \n{formatted_new_repos}"
-        initial_description = f"Initializing commit logs for **{len(new_repos)}** new {repo_word}..."
+        initial_message = f"Initializing commit logs for **{len(new_repos)}** new {repo_word}..."
+        initial_description = f"**{len(new_repos)}** new {repo_word} detected: \n{formatted_new_repos}"
 
         initial_embed = {
             "embeds": [
                 {
                     "author": {
-                        "name": f"Initializing New {repo_word.capitalize()}",
+                        "name": f"New {repo_word.capitalize()} Detected",
                     },
                     "title": initial_message,
                     "description": initial_description,
@@ -356,6 +356,7 @@ def notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_
                 }
             ]
         }
+
         # Send the initial Discord embed
         response = requests.post(DISCORD_WEBHOOK_URL, json=initial_embed)
         response.raise_for_status()
@@ -368,7 +369,7 @@ def notify_discord_repo_init(repo, branch, DISCORD_WEBHOOK_URL, repo_index, new_
         description = "This may take a while for large repositories..."
     else:
         message = f"**({repo_index}/{len(new_repos)})** Done initializing repository: {key}"
-        description = f"Initialized all **{len(commits)}** commits from `{branch}` branch of {repo}.\n\nReady to receive notifications for new commits."
+        description = f"Initialized all **{len(commits)}** commits from `{branch}` branch of {repo}.\n\nReady to receive notifications for new commits!"
 
     # Construct the URL to fetch repository info
     repo_info_url = f'https://api.github.com/repos/{repo}'
