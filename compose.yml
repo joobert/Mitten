@@ -3,6 +3,8 @@ services:
   mitten:
     build: .
     container_name: mitten
+    environment:
+      - TZ=America/New_York
     env_file:
       - .env
     volumes:
