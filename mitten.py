@@ -68,7 +68,7 @@ def get_env_vars():
         PREFER_AUTHOR_IN_TITLE = False
         logging.info("'PREFER_AUTHOR_IN_TITLE' environment variable is missing or empty. Defaulting to False.")
     if TEST_WEBHOOK_CONNECTION == 'True':
-        send_test_webhook_message(DISCORD_WEBHOOK_URL, ROLES_TO_MENTION)
+        send_test_webhook_message(DISCORD_WEBHOOK_URL)
 
     return REPOS, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_INTERVAL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, WEBHOOKS_ON_REPO_INIT, PREFER_AUTHOR_IN_TITLE
 
@@ -302,13 +302,8 @@ def initialize_repo_log(repo, branch, DISCORD_WEBHOOK_URL, GITHUB_TOKEN, CHECK_I
     if repo_index == len(new_repos):
         logging.info(f"Done! Successfully initialized {len(new_repos)} repositories. Checking for new commits every {CHECK_INTERVAL} seconds...")
 
-def send_test_webhook_message(DISCORD_WEBHOOK_URL, ROLES_TO_MENTION):
-    role_mentions = "".join(f"<@&{role_id}>" if role_id.isdigit() else role_id for role_id in ROLES_TO_MENTION.split(','))
-    if "@everyone" in ROLES_TO_MENTION.split(','):
-        role_mentions += " @everyone"
-
+def send_test_webhook_message(DISCORD_WEBHOOK_URL):
     test_message = {
-        "content": role_mentions,
         "embeds": [
             {
                 "title": "Success",
