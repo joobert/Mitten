@@ -30,7 +30,7 @@ Create a '**.env**' file in the same directory as the script with the following 
 - **DISCORD_WEBHOOK_URL**: The Discord webhook URL where notifications will be sent.
 - **GITHUB_TOKEN**: (Optional but **highly recommended**) Your GitHub API token to avoid rate limiting. Learn more about creating a personal access token [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 - **CHECK_INTERVAL**: The interval (in seconds) at which the script checks for new commits. Make sure this value is less than the number of repos to monitor.
-- **DISCORD_EMBED_COLOR**: (Optional) The color of the commit embeds sent to Discord.
+- **DISCORD_EMBED_COLOR**: (Optional) The color of the commit embeds sent to Discord. The color must be provided in hexadecimal format using the prefix '0x' (e.g., '0xffffff').
 - **ROLES_TO_MENTION**: (Optional) The role IDs (NOT role name, but the corresponding 19 digit role ID) to mention in Discord when a new commit is detected. Separate each role ID with a comma. You can also ping @everyone by simply setting this to '@everyone'.
 - **WEBHOOKS_ON_REPO_INIT**: Choose whether to send a message to Discord whenever a new repository is initialized.
 - **PREFER_AUTHOR_IN_TITLE**: Preference for title style in commit messages. If set to True, the commit author's username and avatar will be used in the title of the embed. If set to False, the repo name and the repo owner's avatar will be used.
