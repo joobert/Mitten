@@ -1,5 +1,6 @@
 import requests
 import time
+import math
 import json
 import sys
 import os
@@ -248,7 +249,7 @@ def fetch_all_commits(repo, branch, GITHUB_TOKEN, headers):
         if response.status_code == 403:
             reset_time = int(response.headers['X-RateLimit-Reset'])
             wait_time = reset_time - time.time()
-            logging.warning(f"Rate limit exceeded. Waiting for {int(wait_time)} second(s).")
+            logging.error(f"Rate limit exceeded. Waiting for {int(wait_time)} second(s).")
             if not GITHUB_TOKEN:
                 logging.info("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
             while wait_time > 0:
@@ -494,38 +495,56 @@ def notify_discord(repo, branch, commit, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLO
     time.sleep(1)  # Avoid Discord webhook rate limiting
 
 # Check each repository for new commits
-def check_repo(repo, branch, latest_commits, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, PREFER_AUTHOR_IN_TITLE, rate_limit, headers):
-    try:
-        key = f"{repo}:{branch}"
-        last_seen_timestamp = latest_commits.get(key)
-        new_commits = fetch_new_commits(repo, branch, PREFER_AUTHOR_IN_TITLE, headers, last_seen_timestamp)
-        if new_commits:
-            # Sort commits by timestamp to ensure correct order
-            new_commits.sort(key=lambda commit: commit['commit']['committer']['date'])
-            # Update the latest commit timestamp for the repo to the most recent commit
-            latest_commit_timestamp = new_commits[-1]['commit']['committer']['date']
-            latest_commits[key] = latest_commit_timestamp
+def check_repo(repo, branch, latest_commits, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, PREFER_AUTHOR_IN_TITLE, rate_limit, headers, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            key = f"{repo}:{branch}"
+            last_seen_timestamp = latest_commits.get(key)
+            new_commits = fetch_new_commits(repo, branch, PREFER_AUTHOR_IN_TITLE, headers, last_seen_timestamp)
+            if new_commits:
+                # Sort commits by timestamp to ensure correct order
+                new_commits.sort(key=lambda commit: commit['commit']['committer']['date'])
+                # Update the latest commit timestamp for the repo to the most recent commit
+                latest_commit_timestamp = new_commits[-1]['commit']['committer']['date']
+                latest_commits[key] = latest_commit_timestamp
 
-            # Notify for each new commit if it has not been logged
-            for commit in new_commits:
-                commit_sha = commit['sha']
-                commit_log = load_commit_log()
-                if has_been_logged(key, commit_sha, commit_log):  # Check if already notified/logged
-                    logging.info(f"Commit #{commit_sha} in {repo} on {branch} branch has already been logged. Watching for new commits...")
-                    return
-                else:  # Notify for each new commit
-                    notify_discord(repo, branch, commit, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, headers)
+                # Notify for each new commit if it has not been logged
+                for commit in new_commits:
+                    commit_sha = commit['sha']
+                    commit_log = load_commit_log()
+                    if has_been_logged(key, commit_sha, commit_log):  # Check if already notified/logged
+                        logging.info(f"Commit #{commit_sha} in {repo} on {branch} branch has already been logged. Watching for new commits...")
+                        return
+                    else:  # Notify for each new commit
+                        notify_discord(repo, branch, commit, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, headers)
 
-    # Handle exceptions and log errors
-    except requests.RequestException as e:
-        requests_remaining, rate_limit_reset_time = monitor_api_usage(headers)
-        formatted_reset_time = format_reset_time(rate_limit_reset_time)
-        logging.error(f"Error fetching commits for {repo}: {e}")
-        logging.warning(f"API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
+        # Handle exceptions and log errors
+        except requests.exceptions.ConnectionError as e:
+            wait = math.pow(2, attempt)  # Exponential backoff
+            logging.warning(f"Connection error on {repo}: {e}")
+            logging.info(f"Retrying in {wait} seconds...")
+            time.sleep(wait)
+        except requests.RequestException as e:
+            requests_remaining, rate_limit_reset_time = monitor_api_usage(headers)
+            formatted_reset_time = format_reset_time(rate_limit_reset_time)
+            logging.error(f"Error fetching commits for {repo}: {e}")
+            logging.warning(f"API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
+            if requests_remaining > 0:
+                logging.info(f"Retrying in {rate_limit} seconds...")
+                time.sleep(rate_limit)
+            else:
+                logging.error(f"API rate limit exceeded. Waiting for {formatted_reset_time}")
+                time.sleep(rate_limit_reset_time - time.time())
+        except Exception as e:
+            logging.error(f"Unexpected error on {repo}, skipping: {e}")
+            return
+
+    # Log max retries exceeded
+    logging.error(f"Max retries exceeded for {repo}, skipping.")
 
 # Main function to begin monitoring repositories for new commits
 def main():
-    logging.info("Starting Mitten (v1.2)")
+    logging.info("Starting Mitten (v1.2.1)")
 
     # Check for the existence of the .env file
     check_env_file()
@@ -564,28 +583,44 @@ def main():
 
     # Main loop to check for new commits
     while True:
-        requests_remaining, rate_limit_reset_time = monitor_api_usage(headers)
-        formatted_reset_time = format_reset_time(rate_limit_reset_time)
-        if requests_remaining < (10 * len(parsed_repos)):  # Adjust the polling interval to mitigate rate limiting
-            logging.warning(f"API rate limit is low ({requests_remaining} requests remaining). Adjusting polling interval and waiting for {CHECK_INTERVAL * 2} seconds.")
-            if not GITHUB_TOKEN:
-                logging.warning("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
-            time.sleep(CHECK_INTERVAL * 2)
-            continue
+        try:
+            requests_remaining, rate_limit_reset_time = monitor_api_usage(headers)
+            formatted_reset_time = format_reset_time(rate_limit_reset_time)
+            if len(parsed_repos) < requests_remaining < (10 * len(parsed_repos)):  # Adjust the polling interval to mitigate rate limiting
+                logging.warning(f"API rate limit is low ({requests_remaining} requests remaining). Adjusting polling interval and waiting for {CHECK_INTERVAL * 2} seconds.")
+                if not GITHUB_TOKEN:
+                    logging.warning("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
+                time.sleep(CHECK_INTERVAL * 2)
+                continue
+            elif len(parsed_repos) > requests_remaining:
+                logging.error(f"API rate limit exceeded. Waiting for {formatted_reset_time}")
+                time.sleep(rate_limit_reset_time - time.time())
+                if not GITHUB_TOKEN:
+                    logging.warning("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
 
-        # Log each new scan, as well as the current API requests remaining and rate limit reset time
-        logging.info(f"Starting new scan... | API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
+            # Log each new scan, as well as the current API requests remaining and rate limit reset time
+            logging.info(f"Starting new scan... | API requests remaining: {requests_remaining} | Rate limit resets to '{rate_limit}' in {formatted_reset_time}")
 
         # Check each repository for new commits
-        for repo, branch in parsed_repos:
-            try:
+            for repo, branch in parsed_repos:
                 check_repo(repo, branch, latest_commits, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLOR, ROLES_TO_MENTION, PREFER_AUTHOR_IN_TITLE, rate_limit, headers)
-            except Exception as e:
-                logging.error(f"Error occurred while checking repository {repo}: {e}")
 
-        # Log the end of each scan
-        logging.info(f"Scan completed. Waiting for {CHECK_INTERVAL} seconds...")
-        time.sleep(CHECK_INTERVAL)
+            # Log the end of each scan
+            logging.info(f"Scan completed. Waiting for {CHECK_INTERVAL} seconds...")
+            time.sleep(CHECK_INTERVAL)
+
+        # Handle main loop exceptions and log errors
+        except KeyboardInterrupt:
+            logging.info("Interrupted by user, exiting...")
+            break
+        except requests.exceptions.ConnectionError as e:
+            logging.error(f"Connection error occurred: {e}")
+            logging.info(f"Retrying in {CHECK_INTERVAL} seconds...")
+            time.sleep(CHECK_INTERVAL)
+        except Exception as e:
+            logging.error(f"An unexpected error occurred in the main loop: {e}")
+            logging.info(f"Retrying in {CHECK_INTERVAL} seconds...")
+            time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
     main()
