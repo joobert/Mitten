@@ -9,4 +9,5 @@ services:
       - .env
     volumes:
       - ./commit_log.json:/app/commit_log.json
+      - ./mitten_logs.txt:/app/mitten_logs.txt
     restart: unless-stopped
