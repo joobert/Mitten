@@ -90,9 +90,9 @@ Create a '**.env**' file in the same directory as the script with the following 
     TEST_WEBHOOK_CONNECTION=False
     ```
 
-3. Create an empty `commit_log.json` file:
+3. Create empty `commit_log.json` and `mitten_logs.txt` files:
     ```sh
-    touch commit_log.json
+    touch commit_log.json mitten_logs.txt
     ```
 
 4. Start the service with Docker Compose:
