@@ -1,4 +1,5 @@
 .vscode
+dev
 archive
 .env
 commit_log.json
