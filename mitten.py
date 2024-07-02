@@ -30,11 +30,11 @@ def get_env_vars():
     DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
     CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL'))
+    DISCORD_EMBED_COLOR = os.getenv('DISCORD_EMBED_COLOR')
+    ROLES_TO_MENTION = os.getenv('ROLES_TO_MENTION')
     WEBHOOKS_ON_REPO_INIT = os.getenv('WEBHOOKS_ON_REPO_INIT')
     PREFER_AUTHOR_IN_TITLE = os.getenv('PREFER_AUTHOR_IN_TITLE')
     TEST_WEBHOOK_CONNECTION = os.getenv('TEST_WEBHOOK_CONNECTION')
-    DISCORD_EMBED_COLOR = os.getenv('DISCORD_EMBED_COLOR')
-    ROLES_TO_MENTION = os.getenv('ROLES_TO_MENTION')
 
     # Handle environment variables
     if not REPOS:
@@ -65,7 +65,7 @@ def get_env_vars():
     else:
         ROLES_TO_MENTION = "".join(f"<@&{role_id}>" if role_id.isdigit() else role_id for role_id in ROLES_TO_MENTION.split(','))
         if "@everyone" in ROLES_TO_MENTION.split(','):
-            ROLES_TO_MENTION += " @everyone"
+            ROLES_TO_MENTION += "@everyone"
     if not WEBHOOKS_ON_REPO_INIT:
         WEBHOOKS_ON_REPO_INIT = True
         logging.info("'WEBHOOKS_ON_REPO_INIT' environment variable is missing or empty. Defaulting to True.")
@@ -171,11 +171,11 @@ def format_reset_time(rate_limit_reset_time):
     remaining_minutes = int((remaining_time % 3600) / 60)
     remaining_seconds = int(remaining_time % 60)
     if 10 < remaining_minutes < 60:
-        return f"{remaining_minutes} minute(s)"
-    elif 1 < remaining_minutes < 10:
-        return f"{remaining_minutes} minute(s), and {remaining_seconds % 60} second(s)"
+        return f"{remaining_minutes} minutes"
+    elif 1 < remaining_minutes <= 10:
+        return f"{remaining_minutes} minutes, and {remaining_seconds % 60} second" + ("s" if remaining_seconds > 1 else "")
     else:
-        return f"{remaining_seconds} second(s)"
+        return f"{remaining_seconds} second" + ("s" if remaining_seconds > 1 else "")
 
 # Monitor GitHub API usage
 def monitor_api_usage(headers):
@@ -249,11 +249,11 @@ def fetch_all_commits(repo, branch, GITHUB_TOKEN, headers):
         if response.status_code == 403:
             reset_time = int(response.headers['X-RateLimit-Reset'])
             wait_time = reset_time - time.time()
-            logging.error(f"Rate limit exceeded. Waiting for {int(wait_time)} second(s).")
+            logging.error(f"Rate limit exceeded. Waiting for {int(wait_time)} second" + ("s..." if wait_time > 1 else "..."))
             if not GITHUB_TOKEN:
                 logging.info("It is highly recommended to configure a GitHub API token to avoid rate limiting.\nLearn more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens")
             while wait_time > 0:
-                logging.info(f"Waiting for {int(wait_time)} second(s)...")
+                logging.info(f"Waiting for {int(wait_time)} second" + ("s..." if wait_time > 1 else "..."))
                 time.sleep(5)
                 wait_time -= 5
             continue
@@ -314,7 +314,7 @@ def send_test_webhook_message(DISCORD_WEBHOOK_URL):
         "embeds": [
             {
                 "title": "Success",
-                "description": "This is a test message from Mitten v1.2.",
+                "description": "This is a test message from Mitten v1.2.2",
                 "thumbnail": {
                     "url": "https://static-00.iconduck.com/assets.00/success-icon-512x512-qdg1isa0.png"
                 },
@@ -405,10 +405,6 @@ def notify_discord(repo, branch, commit, DISCORD_WEBHOOK_URL, DISCORD_EMBED_COLO
     commit_sha = commit['sha']
     commit_message = commit['commit']['message']
     commit_log = load_commit_log()
-
-    role_mentions = "".join(f"<@&{role_id}>" if role_id.isdigit() else role_id for role_id in ROLES_TO_MENTION.split(','))
-    if "@everyone" in ROLES_TO_MENTION.split(','):
-        role_mentions += " @everyone"
 
     # Extract and split the commit message and description
     if '\n\n' in commit_message:
@@ -544,7 +540,7 @@ def check_repo(repo, branch, latest_commits, DISCORD_WEBHOOK_URL, DISCORD_EMBED_
 
 # Main function to begin monitoring repositories for new commits
 def main():
-    logging.info("Starting Mitten (v1.2.1)")
+    logging.info("Starting Mitten (v1.2.2)")
 
     # Check for the existence of the .env file
     check_env_file()
