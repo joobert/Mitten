@@ -172,8 +172,8 @@ def format_reset_time(rate_limit_reset_time):
     remaining_seconds = int(remaining_time % 60)
     if 10 < remaining_minutes < 60:
         return f"{remaining_minutes} minutes"
-    elif 1 < remaining_minutes <= 10:
-        return f"{remaining_minutes} minutes, and {remaining_seconds % 60} second" + ("s" if remaining_seconds > 1 else "")
+    elif 1 <= remaining_minutes <= 10:
+        return f"{remaining_minutes} minute" + ("s," if remaining_minutes > 1 else ",") + f"and {remaining_seconds % 60} second" + ("s" if remaining_seconds > 1 else "")
     else:
         return f"{remaining_seconds} second" + ("s" if remaining_seconds > 1 else "")
 
