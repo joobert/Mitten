@@ -29,7 +29,7 @@ Create a '**.env**' file in the same directory as the script with the following 
 - **REPOS**: A comma-separated list of repositories to monitor. You can also optionally specify a branch for each repo by adding ':branch_name' (e.g., '**owner/repo1,owner/repo1:dev_branch,owner/repo2**').
 - **DISCORD_WEBHOOK_URL**: The Discord webhook URL where notifications will be sent.
 - **GITHUB_TOKEN**: (Optional but **highly recommended**) Your GitHub API token to avoid rate limiting. Learn more about creating a personal access token [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-- **CHECK_INTERVAL**: The interval (in seconds) at which the script checks for new commits. Make sure this value is less than the number of repos to monitor.
+- **CHECK_INTERVAL**: The interval (in seconds) at which the script checks for new commits. Make sure this value exceeds the number of repos to monitor.
 - **DISCORD_EMBED_COLOR**: (Optional) The color of the commit embeds sent to Discord. The color must be provided in hexadecimal format using the prefix '0x' (e.g., '0xffffff').
 - **ROLES_TO_MENTION**: (Optional) The role IDs (NOT role name, but the corresponding 19 digit role ID) to mention in Discord when a new commit is detected. Separate each role ID with a comma. You can also ping @everyone by simply setting this to '@everyone'.
 - **WEBHOOKS_ON_REPO_INIT**: Choose whether to send a message to Discord whenever a new repository is initialized.
@@ -97,7 +97,7 @@ Create a '**.env**' file in the same directory as the script with the following 
 
 4. Start the service with Docker Compose:
     ```sh
-    docker-compose up -d
+    docker compose up -d
     ```
 
 ## Important Notes
